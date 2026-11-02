@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tribunal da Conta</title>
+<style>
+:root{--bg:#f6f0e8;--card:#fffdf9;--ink:#28221f;--muted:#756b64;--line:#e7dcd0;--accent:#e85d3f;--gold:#e9b949}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:720px;margin:auto;padding:32px 18px 60px}
+header{text-align:center;margin-bottom:24px}
+.stamp{display:inline-block;border:2px solid var(--accent);color:var(--accent);padding:4px 12px;border-radius:6px;font-size:.75rem;font-weight:800;letter-spacing:.12em;transform:rotate(-3deg)}
+h1{font-size:clamp(2.2rem,8vw,3.6rem);line-height:1;margin:16px 0 10px;letter-spacing:-.05em}
+.sub{color:var(--muted);max-width:48ch;margin:auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin:14px 0;box-shadow:0 5px 18px #39230b0a}
+h2{font-size:1rem;margin:0 0 12px}
+label{display:block;font-size:.85rem;font-weight:700;margin:10px 0 5px}
+input,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font:inherit}
+textarea{min-height:72px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.people{display:grid;gap:10px}
+.person{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}
+.person-top{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.remove{border:0;background:#f8e9e4;color:#a33b27;border-radius:8px;padding:8px 10px;cursor:pointer}
+.secondary{border:1px solid var(--line);background:transparent;border-radius:10px;padding:10px 14px;font:inherit;font-weight:700;cursor:pointer}
+.primary{width:100%;border:0;border-radius:13px;padding:16px;background:var(--accent);color:white;font:800 1.1rem system-ui;cursor:pointer;margin-top:8px}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.result{display:none;text-align:center;background:#28221f;color:#fff;border-radius:18px;padding:22px;margin-top:16px}
+.result.show{display:block}
+.gavel{font-size:2.4rem}
+.verdict{font-size:1.8rem;font-weight:900;line-height:1.1;margin:8px 0}
+.reason{color:#e8ddd4}
+.breakdown{background:#fff;border-radius:12px;padding:12px;text-align:left;color:var(--ink);margin-top:16px}
+.breakdown p{margin:6px 0;display:flex;justify-content:space-between;gap:12px}
+.note{font-size:.8rem;color:var(--muted);margin-top:10px}
+@media(max-width:520px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <span class="stamp">JUSTIÇA ETÍLICA</span>
+  <h1>Tribunal da Conta ⚖️</h1>
+  <p class="sub">Todo mundo tem uma desculpa. O tribunal tem a palavra final: quem vai pagar a bebida?</p>
+</header>
+
+<section class="card">
+  <h2>📋 Dados do caso</h2>
+  <div class="row">
+    <div><label for="total">Valor total da conta (R$)</label><input id="total" type="number" min="0" step="0.01" placeholder="Ex.: 240,00"></div>
+    <div><label for="drink">Valor das bebidas (R$)</label><input id="drink" type="number" min="0" step="0.01" placeholder="Ex.: 60,00"></div>
+  </div>
+  <p class="note">O restante da conta será dividido igualmente. A bebida fica por conta do réu escolhido pelo tribunal.</p>
+</section>
+
+<section class="card">
+  <h2>👥 Quem está no julgamento?</h2>
+  <div id="people" class="people"></div>
+  <button class="secondary" id="add" type="button">+ Adicionar pessoa</button>
+</section>
+
+<button class="primary" id="judge" type="button">⚖️ Dar o veredito</button>
+
+<section class="result" id="result" aria-live="polite">
+  <div class="gavel">🔨</div>
+  <div style="font-size:.75rem;letter-spacing:.14em;color:#e9b949;font-weight:800">SENTENÇA PROFERIDA</div>
+  <div class="verdict" id="winner"></div>
+  <p class="reason" id="quote"></p>
+  <div class="breakdown" id="breakdown"></div>
+  <button class="secondary" id="again" type="button" style="margin-top:14px">Novo julgamento</button>
+</section>
+<p class="note" style="text-align:center">Decisão totalmente imparcial. (Mentira: é na sorte.)</p>
+</main>
+<script>
+const peopleEl=document.getElementById('people');
+const excuses=[
+  'A defesa alegou que só tomou “um golinho”. O tribunal não aceitou.',
+  'A pessoa jurou que estava apenas hidratando a alma. Defesa criativa, resultado duvidoso.',
+  'Alegou que pediu água também. O argumento foi considerado insuficiente.',
+  'Disse que a bebida era parte da experiência cultural. O tribunal ficou comovido, mas manteve a sentença.',
+  'A defesa afirmou que “na próxima eu pago”. O tribunal decidiu que a próxima é hoje.',
+  'Tentou culpar o garçom, a lua e Mercúrio retrógrado. Nada disso consta como atenuante.',
+  'Alegou inocência com muita convicção. Convicção não é comprovante.'
+];
+function addPerson(name='',defense=''){
+ const div=document.createElement('div');div.className='person';
+ div.innerHTML='<div class="person-top"><strong>Participante</strong><button class="remove" type="button">Remover</button></div><label>Nome</label><input class="name" maxlength="35" placeholder="Nome da pessoa"><label>Minha defesa: por que não devo pagar?</label><textarea class="defense" maxlength="180" placeholder="Ex.: Eu só provei a bebida para ver se estava boa..."></textarea>';
+ div.querySelector('.name').value=name;div.querySelector('.defense').value=defense;
+ div.querySelector('.remove').onclick=()=>{if(peopleEl.children.length>2)div.remove();else alert('O tribunal precisa de pelo menos duas pessoas.');};
+ peopleEl.appendChild(div);
+}
+addPerson('Pessoa 1');addPerson('Pessoa 2');
+document.getElementById('add').onclick=()=>addPerson();
+const money=n=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+document.getElementById('judge').onclick=()=>{
+ const entries=[...peopleEl.querySelectorAll('.person')].map((el,i)=>({
+  name:el.querySelector('.name').value.trim()||`Pessoa ${i+1}`,
+  defense:el.querySelector('.defense').value.trim()
+ }));
+ const total=Number(document.getElementById('total').value);
+ const drink=Number(document.getElementById('drink').value);
+ if(entries.length<2){alert('Adicione pelo menos duas pessoas.');return;}
+ if(!Number.isFinite(total)||!Number.isFinite(drink)||total<=0||drink<0||drink>total){alert('Confira os valores: a bebida não pode ser maior que a conta.');return;}
+ const defendant=entries[Math.floor(Math.random()*entries.length)];
+ const foodShare=(total-drink)/entries.length;
+ const verdictShare=foodShare+drink;
+ document.getElementById('winner').textContent=`${defendant.name} VAI PAGAR A BEBIDA!`;
+ const defense=defendant.defense?`“${defendant.defense}”`:'Não apresentou defesa convincente.';
+ document.getElementById('quote').textContent=`Defesa registrada: ${defense} ${excuses[Math.floor(Math.random()*excuses.length)]}`;
+ const lines=entries.map(p=>`<p><span>${p.name}${p.name===defendant.name?' (réu da bebida)':''}</span><strong>${money(foodShare+(p.name===defendant.name?drink:0))}</strong></p>`).join('');
+ document.getElementById('breakdown').innerHTML=`<strong>Divisão da conta</strong>${lines}<hr><p><span>Total</span><strong>${money(total)}</strong></p>`;
+ const result=document.getElementById('result');result.classList.add('show');result.scrollIntoView({behavior:'smooth',block:'center'});
+};
+document.getElementById('again').onclick=()=>{document.getElementById('result').classList.remove('show');document.getElementById('judge').scrollIntoView({behavior:'smooth'});};
+</script>
+</body>
+</html>
